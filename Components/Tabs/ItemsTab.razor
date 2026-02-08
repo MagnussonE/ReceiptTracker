@@ -1,0 +1,66 @@
+@using IcaReceiptTracker.Models
+
+<div class="tab-content">
+    <h2>Items by Date</h2>
+    
+    <div class="date-range-selector">
+        <div class="date-input-group">
+            <label>From:</label>
+            <input type="date" value="@StartDate" @onchange="@HandleStartDateChange" class="date-input" />
+        </div>
+        <div class="date-input-group">
+            <label>To:</label>
+            <input type="date" value="@EndDate" @onchange="@HandleEndDateChange" class="date-input" />
+        </div>
+        <button class="btn btn-primary" @onclick="OnSearch">Search</button>
+    </div>
+
+    @if (Items != null && Items.Any())
+    {
+        <div class="items-summary">
+            <h3>Items by Date: @StartDate to @EndDate</h3>
+            <p class="items-count">Total:: @Items.Count items</p>
+
+            <div class="items-table">
+                <div class="items-table-header">
+                    <span>Item</span>
+                    <span>Category</span>
+                    <span>Times Purchased</span>
+                    <span>Total Quantity</span>
+                    <span>Avg Price</span>
+                    <span>Total Spent</span>
+                </div>
+                @foreach (var itemGroup in Items.GroupBy(i => i.Name))
+                {
+                    var totalQty = itemGroup.Sum(i => i.Quantity);
+                    var avgPrice = itemGroup.Average(i => i.Price);
+                    var totalSpent = itemGroup.Sum(i => i.Price * i.Quantity);
+                    var category = itemGroup.First().Category ?? "Uncategorized";
+                    
+                    <div class="items-table-row">
+                        <span class="item-name-cell">@itemGroup.Key</span>
+                        <span class="category-cell">
+                            @if (!string.IsNullOrEmpty(category))
+                            {
+                                <span class="category-tag">@category</span>
+                            }
+                        </span>
+                        <span class="center-cell">@itemGroup.Count()</span>
+                        <span class="center-cell">@totalQty</span>
+                        <span class="right-cell">@FormatCurrency(avgPrice)</span>
+                        <span class="right-cell total-cell">@FormatCurrency(totalSpent)</span>
+                    </div>
+                }
+            </div>
+
+            <div class="items-grand-total">
+                <span>Total::</span>
+                <span>@FormatCurrency(Items.Sum(i => i.Price * i.Quantity))</span>
+            </div>
+        </div>
+    }
+    else if (Items != null)
+    {
+        <p class="no-data">No items found for this date range</p>
+    }
+</div>

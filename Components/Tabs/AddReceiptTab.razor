@@ -1,0 +1,89 @@
+@using IcaReceiptTracker.Models
+
+<div class="tab-content">
+    <h2>Add New Receipt</h2>
+    
+    @if (PendingCategorizationItems.Any())
+    {
+        <div class="categorization-prompt">
+            <h3>Categorize Item</h3>
+            <p><strong>@PendingCategorizationItems[0].Name</strong> - @FormatCurrency(PendingCategorizationItems[0].Price)</p>
+            
+            <input @bind="NewCategory" placeholder="Enter category" class="form-input" />
+            
+            @if (ExistingCategories.Any())
+            {
+                <div class="existing-categories">
+                    <p>Or select existing:</p>
+                    @foreach (var cat in ExistingCategories)
+                    {
+                        <button class="category-btn" @onclick="() => HandleCategorySelected(cat)">@cat</button>
+                    }
+                </div>
+            }
+            
+            <button class="btn btn-primary" @onclick="OnSaveCategory">Save Category</button>
+        </div>
+    }
+    else
+    {
+        <div class="upload-section">
+            <InputFile OnChange="OnFileUpload" accept=".pdf" multiple />
+            <p class="upload-hint">You can select multiple PDF receipts at once</p>
+            
+            @if (ProcessingQueue.Any() || IsProcessing)
+            {
+                <div class="processing-status">
+                    <h3>Processing Receipts</h3>
+                    @if (IsProcessing)
+                    {
+                        <div class="current-processing">
+                            <span class="processing-indicator">⏳</span>
+                            <strong>Currently processing:</strong> @CurrentProcessingFile
+                        </div>
+                    }
+                    @if (ProcessingQueue.Any())
+                    {
+                        <div class="queue-status">
+                            <p><strong>Remaining in queue:</strong> @ProcessingQueue.Count receipt(s)</p>
+                            <ul class="queue-list">
+                                @foreach (var item in ProcessingQueue.Take(5))
+                                {
+                                    <li>@item.FileName</li>
+                                }
+                                @if (ProcessingQueue.Count > 5)
+                                {
+                                    <li><em>... and @(ProcessingQueue.Count - 5) more</em></li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+            }
+            
+            @if (!string.IsNullOrEmpty(UploadMessage))
+            {
+                <p class="@(UploadSuccess ? "success" : "error")">@UploadMessage</p>
+            }
+            
+            @if (ProcessedCount > 0)
+            {
+                <div class="processed-summary">
+                    <p>✅ <strong>Batch Complete:</strong> @ProcessedCount receipt(s) processed</p>
+                    @if (SuccessCount > 0)
+                    {
+                        <p class="success-detail">✓ Successfully added: @SuccessCount receipt(s)</p>
+                    }
+                    @if (DuplicateCount > 0)
+                    {
+                        <p class="duplicate-detail">⚠️ Already uploaded (duplicates): @DuplicateCount receipt(s)</p>
+                    }
+                    @if (ErrorCount > 0)
+                    {
+                        <p class="error-detail">✗ Failed to parse: @ErrorCount receipt(s)</p>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>

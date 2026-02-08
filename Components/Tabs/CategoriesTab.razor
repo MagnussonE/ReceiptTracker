@@ -1,0 +1,112 @@
+@using IcaReceiptTracker.Models
+
+<div class="tab-content">
+    <div class="categories-header-row">
+        <h2>Categories</h2>
+        <button class="btn-danger-large" @onclick="OnShowClearDbConfirmation">Clear Database</button>
+    </div>
+    
+    @if (ShowClearDbConfirmation)
+    {
+        <div class="confirmation-overlay">
+            <div class="confirmation-dialog-large">
+                <h3>Clear Database?</h3>
+                <p>Choose what you want to delete:</p>
+                
+                <div class="clear-options">
+                    <div class="clear-option-card">
+                        <h4>Clear Receipts Only</h4>
+                        <p>Deletes:</p>
+                        <ul>
+                            <li>All receipts (@ReceiptsCount receipts)</li>
+                            <li>All expense history</li>
+                        </ul>
+                        <p class="keep-text">✓ Keeps all categories (@CategoriesCount categories)</p>
+                        <button class="btn-warning-confirm" @onclick="OnClearReceiptsOnly">Yes, Clear Receipts</button>
+                    </div>
+                    
+                    <div class="clear-option-card danger-card">
+                        <h4>Clear Everything</h4>
+                        <p>Deletes:</p>
+                        <ul>
+                            <li>All receipts (@ReceiptsCount receipts)</li>
+                            <li>All categories (@CategoriesCount categories)</li>
+                            <li>All expense history</li>
+                        </ul>
+                        <p class="warning-text-small">This action cannot be undone!</p>
+                        <button class="btn-danger-confirm" @onclick="OnClearAllData">Yes, Clear Everything</button>
+                    </div>
+                </div>
+                
+                <div class="confirmation-actions">
+                    <button class="btn-cancel-large" @onclick="OnCancelClearDb">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+    
+    @if (Categories != null && Categories.Any())
+    {
+        <div class="categories-management">
+            @foreach (var category in Categories.OrderBy(c => c.Name))
+            {
+                <div class="category-section">
+                    <div class="category-header">
+                        @if (EditingCategory == category.Name)
+                        {
+                            <input type="text" @bind="categoryNewName" class="form-input-inline" @onkeyup="@(async e => { if (e.Key == "Enter") await OnSaveCategoryRename(); })" />
+                            <button class="btn-small btn-success" @onclick="OnSaveCategoryRename">✓</button>
+                            <button class="btn-small btn-cancel" @onclick="OnCancelCategoryEdit">✕</button>
+                        }
+                        else
+                        {
+                            <h3>@category.Name (@category.Items.Count items)</h3>
+                            <div class="category-actions">
+                                <button class="btn-small btn-secondary" @onclick="() => OnStartEditCategory(category.Name)">Rename</button>
+                                <button class="btn-small btn-danger" @onclick="() => OnDeleteCategory(category.Name)">Delete</button>
+                                <button class="btn-small" @onclick="() => ToggleCategoryExpansion(category.Name)">
+                                    @(expandedCategories.Contains(category.Name) ? "▼ Collapse" : "▶ Expand")
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (expandedCategories.Contains(category.Name))
+                    {
+                        <div class="category-items">
+                            @foreach (var item in category.Items.OrderBy(i => i))
+                            {
+                                <div class="category-item-row">
+                                    <span class="item-name-cat">@item</span>
+                                    <div class="item-actions">
+                                        @if (MovingItem == item && MovingFromCategory == category.Name)
+                                        {
+                                            <select @bind="moveToCategory" class="form-select-inline">
+                                                <option value="">Select category...</option>
+                                                @foreach (var cat in AllCategoryNames.Where(c => !c.Equals(category.Name, StringComparison.OrdinalIgnoreCase)))
+                                                {
+                                                    <option value="@cat">@cat</option>
+                                                }
+                                            </select>
+                                            <button class="btn-small btn-success" @onclick="OnExecuteMove">Move</button>
+                                            <button class="btn-small btn-cancel" @onclick="OnCancelMove">Cancel</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-small btn-secondary" @onclick="() => OnStartMoveItem(item, category.Name)">Move</button>
+                                            <button class="btn-small btn-danger" @onclick="() => OnRemoveItem(item, category.Name)">Remove</button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <p>No categories yet</p>
+    }
+</div>

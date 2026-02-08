@@ -1,0 +1,86 @@
+@page "/"
+@rendermode InteractiveServer
+@using IcaReceiptTracker.Components.Tabs
+
+<PageTitle>ICA Receipt Tracker</PageTitle>
+
+<div class="container">
+    <h1>ICA Receipt Tracker</h1>
+
+    <div class="tabs">
+        <button class="@(activeTab == "add" ? "active" : "")" @onclick='() => SwitchTab("add")'>Add Receipt</button>
+        <button class="@(activeTab == "view" ? "active" : "")" @onclick='() => SwitchTab("view")'>View Expenses</button>
+        <button class="@(activeTab == "items" ? "active" : "")" @onclick='() => SwitchTab("items")'>Items by Date</button>
+        <button class="@(activeTab == "categories" ? "active" : "")" @onclick='() => SwitchTab("categories")'>Categories</button>
+    </div>
+
+    @if (activeTab == "add")
+    {
+        <AddReceiptTab 
+            PendingCategorizationItems="@pendingCategorizationItems"
+            NewCategory="@newCategory"
+            ExistingCategories="@DataService.GetAllCategories()"
+            ProcessingQueue="@processingQueue"
+            IsProcessing="@isProcessing"
+            CurrentProcessingFile="@currentProcessingFile"
+            UploadMessage="@uploadMessage"
+            UploadSuccess="@uploadSuccess"
+            ProcessedCount="@processedCount"
+            SuccessCount="@successCount"
+            DuplicateCount="@duplicateCount"
+            ErrorCount="@errorCount"
+            OnFileUpload="@HandleFileUpload"
+            OnCategorySelected="@AssignCategory"
+            OnSaveCategory="@SaveCategory" />
+    }
+    else if (activeTab == "view")
+    {
+        <ViewExpensesTab 
+            Expenses="@currentExpenses"
+            StartDate="@viewStartDate"
+            EndDate="@viewEndDate"
+            SelectedReceipts="@selectedReceiptsForDeletion"
+            ShowDeleteConfirmation="@showDeleteReceiptsConfirmation"
+            OnDateRangeChanged="@HandleDateRangeChanged"
+            OnDeleteReceipts="@DeleteSelectedReceipts"
+            OnCancelDelete="@CancelDeleteReceipts"
+            OnReceiptSelectionToggled="@ToggleReceiptSelection"
+            OnSelectionCleared="@ClearReceiptSelection"
+            OnDeleteConfirmationRequested="@ShowDeleteReceiptsConfirmation" />
+    }
+    else if (activeTab == "items")
+    {
+        <ItemsTab 
+            Items="@itemsInDateRange"
+            StartDate="@itemsStartDate"
+            EndDate="@itemsEndDate"
+            OnSearchRequested="@LoadItemsByDateRange"
+            OnStartDateChanged="@HandleItemsStartDateChanged"
+            OnEndDateChanged="@HandleItemsEndDateChanged" />
+    }
+    else if (activeTab == "categories")
+    {
+        <CategoriesTab 
+            Categories="@DataService.GetCategoriesWithItems()"
+            AllCategoryNames="@DataService.GetAllCategories()"
+            ReceiptsCount="@DataService.GetAllReceipts().Count"
+            CategoriesCount="@DataService.GetAllCategories().Count"
+            ShowClearDbConfirmation="@showClearDbConfirmation"
+            EditingCategory="@editingCategory"
+            MovingItem="@movingItem"
+            MovingFromCategory="@movingFromCategory"
+            OnShowClearDbConfirmationRequested="@ShowClearDbConfirmation"
+            OnCancelClearDbRequested="@CancelClearDb"
+            OnClearAllDataRequested="@ClearAllData"
+            OnClearReceiptsOnlyRequested="@ClearReceiptsOnly"
+            OnStartEditCategoryRequested="@StartEditCategory"
+            OnSaveCategoryRenameRequested="@HandleCategoryRename"
+            OnCancelCategoryEditRequested="@CancelCategoryEdit"
+            OnDeleteCategoryRequested="@DeleteCategoryConfirm"
+            OnStartMoveItemRequested="@HandleStartMoveItem"
+            OnExecuteMoveRequested="@HandleExecuteMove"
+            OnCancelMoveRequested="@CancelMove"
+            OnRemoveItemRequested="@HandleRemoveItem" />
+    }
+</div>
+

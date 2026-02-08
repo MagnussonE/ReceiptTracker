@@ -1,0 +1,189 @@
+@using IcaReceiptTracker.Models
+
+<div class="tab-content">
+    <h2>View Expenses</h2>
+    
+    <div class="period-selector">
+        <label>Date Range:</label>
+        <div class="date-range-inputs">
+            <div class="date-input-group">
+                <label>From:</label>
+                <input type="date" value="@StartDate" @oninput="OnStartDateChanged" />
+            </div>
+            <div class="date-input-group">
+                <label>To:</label>
+                <input type="date" value="@EndDate" @oninput="OnEndDateChanged" />
+            </div>
+        </div>
+    </div>
+
+    @if (ShowDeleteConfirmation)
+    {
+        <div class="confirmation-overlay">
+            <div class="confirmation-dialog">
+                <h3>🗑️ Delete Selected Receipts?</h3>
+                <p>@string.Format("You are about to delete {0} receipt(s):", SelectedReceipts.Count)</p>
+                <ul class="delete-receipts-list">
+                    @foreach (var receipt in SelectedReceipts.Take(5))
+                    {
+                        <li>@receipt.Date.ToString("yyyy-MM-dd") - @receipt.Store - @FormatCurrency(receipt.Total)</li>
+                    }
+                    @if (SelectedReceipts.Count > 5)
+                    {
+                        <li><em>@string.Format("... and {0} more", SelectedReceipts.Count - 5)</em></li>
+                    }
+                </ul>
+                <p class="warning-text">This action cannot be undone!</p>
+                <div class="confirmation-actions">
+                    <button class="btn-danger-confirm" @onclick="OnDeleteConfirmed">Yes, Delete Receipts</button>
+                    <button class="btn-cancel-large" @onclick="OnDeleteCancelled">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Expenses != null)
+    {
+        @if (Expenses.Receipts.Any())
+        {
+            <div class="expenses-summary">
+                <h3>@string.Format("Period: {0} to {1}", Expenses.StartDate.ToString("yyyy-MM-dd"), Expenses.EndDate.ToString("yyyy-MM-dd"))</h3>
+                <h2 class="total">Total:: @FormatCurrency(Expenses.Total)</h2>
+
+                <div class="chart-section">
+                    <h3>Spending by Category</h3>
+                    <div class="pie-chart-container">
+                        <canvas id="expensePieChart"></canvas>
+                    </div>
+                </div>
+
+            <h3>By Category</h3>
+            <div class="category-breakdown">
+                @foreach (var category in Expenses.ByCategory.OrderByDescending(c => c.Value))
+                {
+                    var categoryKey = category.Key ?? "Uncategorized";
+                    var categoryId = $"expense-cat-{categoryKey}";
+                    
+                    <div class="category-item-expandable">
+                        <div class="category-item-header" @onclick="() => ToggleCategoryExpansion(categoryId)">
+                            <div>
+                                <span class="category-name">@categoryKey</span>
+                                <span class="expand-icon-small">@(expandedCategories.Contains(categoryId) ? "▼" : "▶")</span>
+                            </div>
+                            <span class="category-amount">@FormatCurrency(category.Value)</span>
+                        </div>
+                        
+                        @if (expandedCategories.Contains(categoryId))
+                        {
+                            <div class="category-items-detail">
+                                @{
+                                    var rawCategoryKey = category.Key ?? "Uncategorized";
+                                    var itemsInCategory = Expenses.Receipts
+                                        .SelectMany(r => r.Items)
+                                        .Where(i => (i.Category ?? "Uncategorized") == rawCategoryKey)
+                                        .GroupBy(i => i.Name)
+                                        .Select(g => new {
+                                            Name = g.Key,
+                                            TotalQty = g.Sum(i => i.Quantity),
+                                            AvgPrice = g.Average(i => i.Price),
+                                            TotalSpent = g.Sum(i => i.Price * i.Quantity),
+                                            Count = g.Count()
+                                        })
+                                        .OrderByDescending(i => i.TotalSpent);
+                                }
+                                
+                                @foreach (var item in itemsInCategory)
+                                {
+                                    <div class="category-detail-row">
+                                        <span class="detail-item-name">@item.Name</span>
+                                        <span class="detail-item-info">
+                                            @item.Count× | Qty: @item.TotalQty | Avg: @FormatCurrency(item.AvgPrice)
+                                        </span>
+                                        <span class="detail-item-total">@FormatCurrency(item.TotalSpent)</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <h3>Receipts (@Expenses.Receipts.Count)</h3>
+            
+            @if (SelectedReceipts.Any())
+            {
+                <div class="delete-receipts-bar">
+                    <span>@SelectedReceipts.Count receipt(s) selected</span>
+                    <div>
+                        <button class="btn-small btn-secondary" @onclick="OnClearSelection">Clear Selection</button>
+                        <button class="btn-small btn-danger" @onclick="OnShowDeleteConfirmation">Delete Selected</button>
+                    </div>
+                </div>
+            }
+            
+            <div class="receipts-list">
+                @foreach (var receipt in Expenses.Receipts)
+                {
+                    <div class="receipt-item @(SelectedReceipts.Contains(receipt) ? "selected" : "")">
+                        <div class="receipt-header-with-checkbox">
+                            <input type="checkbox" 
+                                   checked="@SelectedReceipts.Contains(receipt)"
+                                   @onchange="@(e => OnToggleReceiptSelection(receipt))"
+                                   class="receipt-checkbox"
+                                   @onclick:stopPropagation="true" />
+                             <div class="receipt-header-content" @onclick="() => ToggleReceiptExpansion(receipt.Date.ToString() + receipt.Store)">
+                                <div>
+                                    <strong>@receipt.Date.ToString("yyyy-MM-dd")</strong>
+                                    <small style="margin-left: 10px; color: #666;">@receipt.Store</small>
+                                </div>
+                                <div>
+                                    <strong>@FormatCurrency(receipt.Total)</strong>
+                                    <span class="expand-icon">@(expandedReceipts.Contains(receipt.Date.ToString() + receipt.Store) ? "▼" : "▶")</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        @if (expandedReceipts.Contains(receipt.Date.ToString() + receipt.Store))
+                        {
+                            <div class="receipt-items-list">
+                                <div class="items-header">
+                                    <span>Item</span>
+                                    <span>Quantity</span>
+                                    <span>Price</span>
+                                    <span>Total:</span>
+                                </div>
+                                @foreach (var item in receipt.Items)
+                                {
+                                    <div class="item-row">
+                                        <span class="item-name">
+                                            @item.Name
+                                            @if (!string.IsNullOrEmpty(item.Category))
+                                            {
+                                                <span class="item-category">[@item.Category]</span>
+                                            }
+                                        </span>
+                                        <span class="item-quantity">@item.Quantity</span>
+                                        <span class="item-price">@FormatCurrency(item.Price)</span>
+                                        <span class="item-total">@FormatCurrency(item.Price * item.Quantity)</span>
+                                    </div>
+                                }
+                                <div class="items-total">
+                                    <span>Total::</span>
+                                    <span>@FormatCurrency(receipt.Total)</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        }
+        else
+        {
+            <div class="no-data">
+                <p>No receipts found for the selected date range.</p>
+                <p>Try adjusting the dates or upload some receipts first.</p>
+            </div>
+        }
+    }
+</div>
