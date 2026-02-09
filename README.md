@@ -347,14 +347,3 @@ This project is provided as-is without any specific license. Feel free to use an
 **Eddie Magnusson**
 - GitHub: [@MagnussonE](https://github.com/MagnussonE)
 - Email: eddiemagnusson95@gmail.com
-
-## Acknowledgments
-
-- **UglyToad.PdfPig**: Excellent PDF parsing library
-- **Chart.js**: Beautiful and flexible charting library
-- **ICA Sweden**: For providing detailed text-based PDF receipts
-- **Blazor Community**: For excellent documentation and support
-
----
-
-**Made with ❤️ in Sweden 🇸🇪**
